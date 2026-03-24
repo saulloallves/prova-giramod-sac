@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prova GiraMod & SAC — Cresci e Perdi</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --verde: #2d6a4f; --verde-claro: #52b788; --verde-palido: #d8f3dc;
+    --amarelo: #f4a261; --amarelo-claro: #fef3e2;
+    --cinza-escuro: #1a1a2e; --cinza: #4a4a6a; --cinza-claro: #f0f0f5;
+    --branco: #fafafa; --erro: #e63946;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #f5f5f0; color: var(--cinza-escuro); min-height: 100vh; }
+
+  #tela-identificacao { min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--cinza-escuro) 0%,#16213e 50%,#0f3460 100%); padding:2rem; }
+  .id-card { background:var(--branco); border-radius:24px; padding:3rem 3.5rem; max-width:520px; width:100%; box-shadow:0 40px 80px rgba(0,0,0,.3); position:relative; overflow:hidden; }
+  .id-card::before { content:''; position:absolute; top:0;left:0;right:0; height:6px; background:linear-gradient(90deg,var(--verde),var(--verde-claro),var(--amarelo)); }
+  .logo-marca { display:flex; align-items:center; gap:12px; margin-bottom:2.5rem; }
+  .logo-icone { width:48px;height:48px; background:var(--verde); border-radius:14px; display:flex;align-items:center;justify-content:center; font-size:1.5rem; }
+  .logo-texto { font-family:'DM Serif Display',serif; font-size:1.3rem; color:var(--cinza-escuro); line-height:1.2; }
+  .logo-texto span { display:block; font-family:'DM Sans',sans-serif; font-size:.75rem; font-weight:400; color:var(--cinza); letter-spacing:.05em; text-transform:uppercase; }
+  .id-card h1 { font-family:'DM Serif Display',serif; font-size:2rem; line-height:1.2; margin-bottom:.75rem; }
+  .id-card p { color:var(--cinza); font-size:.95rem; line-height:1.6; margin-bottom:2rem; }
+  .campo-grupo { margin-bottom:1.25rem; }
+  .campo-grupo label { display:block; font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--cinza); margin-bottom:.5rem; }
+  .campo-grupo input, .campo-grupo select { width:100%; padding:.85rem 1rem; border:2px solid #e0e0e8; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:1rem; color:var(--cinza-escuro); background:var(--branco); transition:border-color .2s; outline:none; appearance:none; }
+  .campo-grupo input:focus, .campo-grupo select:focus { border-color:var(--verde-claro); }
+  .btn-iniciar { width:100%; padding:1rem; background:var(--verde); color:white; border:none; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:1rem; font-weight:600; cursor:pointer; margin-top:1.5rem; transition:all .2s; }
+  .btn-iniciar:hover { background:#1e4d38; transform:translateY(-1px); box-shadow:0 8px 20px rgba(45,106,79,.35); }
+  .aviso-tempo { display:flex; align-items:center; gap:8px; background:var(--amarelo-claro); border:1px solid #fad7a0; border-radius:10px; padding:.75rem 1rem; font-size:.85rem; color:#8b4513; margin-top:1.25rem; }
+  .erro-msg { color:var(--erro); font-size:.85rem; margin-top:.5rem; display:none; }
+
+  #tela-prova { display:none; }
+  .header-prova { background:var(--cinza-escuro); color:white; padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; box-shadow:0 4px 20px rgba(0,0,0,.2); }
+  .header-info { display:flex; align-items:center; gap:1.5rem; }
+  .header-logo { font-family:'DM Serif Display',serif; font-size:1.1rem; }
+  .header-candidato { font-size:.85rem; color:#aaa; }
+  .header-candidato strong { color:white; font-weight:500; }
+  .timer-bloco { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.1); padding:.5rem 1rem; border-radius:10px; font-family:'DM Serif Display',serif; font-size:1.4rem; letter-spacing:.05em; }
+  .timer-bloco.urgente { background:rgba(230,57,70,.25); color:#ff6b7a; animation:pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.7} }
+  .progresso-bar { height:4px; background:#2a2a3e; }
+  .progresso-fill { height:100%; background:linear-gradient(90deg,var(--verde),var(--verde-claro)); transition:width .4s ease; }
+  .prova-container { max-width:820px; margin:0 auto; padding:2.5rem 2rem 5rem; }
+  .prova-status { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; padding-bottom:1.5rem; border-bottom:2px solid #e8e8e8; }
+  .status-texto { font-size:.9rem; color:var(--cinza); }
+  .status-texto strong { color:var(--cinza-escuro); font-size:1.1rem; }
+  .mini-mapa { display:flex; gap:5px; flex-wrap:wrap; max-width:300px; justify-content:flex-end; }
+  .mini-q { width:22px;height:22px; border-radius:5px; background:#e8e8e8; cursor:pointer; transition:all .2s; font-size:.65rem; display:flex;align-items:center;justify-content:center; color:#999; font-weight:600; }
+  .mini-q.respondida { background:var(--verde); color:white; }
+  .mini-q.respondida.errada { background:var(--erro); color:white; }
+  .mini-q.atual { background:var(--amarelo); color:white; }
+
+  .questao-bloco { background:white; border-radius:20px; padding:2rem 2.5rem; margin-bottom:1.5rem; box-shadow:0 2px 12px rgba(0,0,0,.06); border:2px solid transparent; transition:border-color .3s; scroll-margin-top:100px; }
+  .questao-bloco.respondida { border-color:var(--verde-palido); }
+  .questao-header { display:flex; align-items:flex-start; gap:1rem; margin-bottom:1.5rem; }
+  .numero-badge { background:var(--cinza-escuro); color:white; width:36px;height:36px; border-radius:10px; display:flex;align-items:center;justify-content:center; font-weight:700; font-size:.9rem; flex-shrink:0; margin-top:2px; }
+  .questao-bloco.respondida .numero-badge { background:var(--verde); }
+  .tema-tag { display:inline-block; background:var(--verde-palido); color:var(--verde); font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; padding:3px 8px; border-radius:6px; margin-bottom:.5rem; }
+  .questao-texto { font-size:1rem; line-height:1.65; color:var(--cinza-escuro); font-weight:400; }
+  .alternativas { display:flex; flex-direction:column; gap:.6rem; }
+  .alt-label { display:flex; align-items:flex-start; gap:.75rem; padding:.85rem 1rem; border:2px solid #e8e8ee; border-radius:12px; cursor:pointer; transition:all .2s; user-select:none; }
+  .alt-label:hover { border-color:var(--verde-claro); background:var(--verde-palido); }
+  .alt-label input[type="radio"] { display:none; }
+  .alt-circulo { width:22px;height:22px; border:2px solid #ccc; border-radius:50%; flex-shrink:0; display:flex;align-items:center;justify-content:center; transition:all .2s; margin-top:1px; }
+  .alt-letra { font-weight:700; font-size:.8rem; color:#ccc; transition:color .2s; }
+  .alt-texto { font-size:.95rem; line-height:1.5; color:var(--cinza); }
+  .alt-label input:checked ~ .alt-circulo { background:var(--verde); border-color:var(--verde); }
+  .alt-label input:checked ~ .alt-circulo .alt-letra { color:white; }
+  .alt-label:has(input:checked) { border-color:var(--verde); background:var(--verde-palido); }
+  .alt-label:has(input:checked) .alt-texto { color:var(--cinza-escuro); font-weight:500; }
+
+  .alt-label.gabarito-certo { border-color:#22c55e !important; background:#dcfce7 !important; }
+  .alt-label.gabarito-certo .alt-circulo { background:#22c55e !important; border-color:#22c55e !important; }
+  .alt-label.gabarito-certo .alt-letra { color:white !important; }
+  .alt-label.gabarito-certo .alt-texto { color:#14532d !important; font-weight:600 !important; }
+  .alt-label.gabarito-errado { border-color:var(--erro) !important; background:#fde8e8 !important; }
+  .alt-label.gabarito-errado .alt-circulo { background:var(--erro) !important; border-color:var(--erro) !important; }
+  .alt-label.gabarito-errado .alt-letra { color:white !important; }
+  .alt-label.gabarito-errado .alt-texto { color:#7f1d1d !important; font-weight:600 !important; }
+  .alt-label.gabarito-mostrar-certo { border-color:#22c55e !important; background:#dcfce7 !important; }
+  .alt-label.gabarito-mostrar-certo .alt-circulo { border-color:#22c55e !important; }
+  .alt-label.gabarito-mostrar-certo .alt-letra { color:#22c55e !important; }
+  .alt-label.gabarito-mostrar-certo .alt-texto { color:#14532d !important; font-weight:600 !important; }
+  .feedback-tag { display:inline-flex; align-items:center; gap:6px; font-size:.78rem; font-weight:700; padding:4px 10px; border-radius:8px; margin-top:.75rem; }
+  .feedback-tag.certo { background:#dcfce7; color:#15803d; }
+  .feedback-tag.errado { background:#fde8e8; color:#dc2626; }
+  .questao-bloco.bloqueada .alt-label { cursor:default !important; pointer-events:none; }
+  .questao-bloco.bloqueada .alt-label:not(.gabarito-certo):not(.gabarito-errado):not(.gabarito-mostrar-certo) { opacity:.55; }
+
+  .barra-envio { position:fixed; bottom:0;left:0;right:0; background:white; border-top:2px solid #e8e8e8; padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; box-shadow:0 -8px 30px rgba(0,0,0,.08); }
+  .resp-contador { font-size:.9rem; color:var(--cinza); }
+  .resp-contador strong { font-size:1.2rem; color:var(--verde); font-family:'DM Serif Display',serif; }
+  .btn-enviar { padding:.85rem 2rem; background:var(--verde); color:white; border:none; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:.95rem; font-weight:600; cursor:pointer; transition:all .2s; display:flex;align-items:center;gap:8px; }
+  .btn-enviar:hover:not(:disabled) { background:#1e4d38; transform:translateY(-2px); box-shadow:0 8px 20px rgba(45,106,79,.3); }
+  .btn-enviar:disabled { background:#ccc; cursor:not-allowed; }
+
+  #tela-resultado { display:none; }
+  .resultado-wrap { min-height:100vh; background:linear-gradient(135deg,var(--cinza-escuro) 0%,#16213e 100%); display:flex; align-items:center; justify-content:center; padding:2rem; }
+  .resultado-card { background:var(--branco); border-radius:24px; padding:3rem; max-width:600px; width:100%; text-align:center; box-shadow:0 40px 80px rgba(0,0,0,.3); }
+  .resultado-icone { font-size:4rem; margin-bottom:1rem; }
+  .resultado-card h2 { font-family:'DM Serif Display',serif; font-size:2rem; margin-bottom:.5rem; }
+  .resultado-card p.sub { color:var(--cinza); margin-bottom:2rem; font-size:1rem; }
+  .nota-grande { font-family:'DM Serif Display',serif; font-size:5rem; line-height:1; margin:1.5rem 0; }
+  .nota-grande.aprovado { color:var(--verde); }
+  .nota-grande.reprovado { color:var(--erro); }
+  .nota-grande.medio { color:var(--amarelo); }
+  .status-pill { display:inline-block; padding:.4rem 1.2rem; border-radius:100px; font-weight:600; font-size:.85rem; margin-bottom:2rem; }
+  .status-pill.aprovado { background:var(--verde-palido); color:var(--verde); }
+  .status-pill.reprovado { background:#fde8e8; color:var(--erro); }
+  .status-pill.medio { background:var(--amarelo-claro); color:#8b4513; }
+  .resultado-detalhes { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:2rem; }
+  .det-item { background:var(--cinza-claro); border-radius:14px; padding:1rem; }
+  .det-item .num { font-family:'DM Serif Display',serif; font-size:2rem; line-height:1; color:var(--cinza-escuro); }
+  .det-item .lab { font-size:.75rem; color:var(--cinza); margin-top:4px; }
+  .msg-resultado { background:var(--cinza-claro); border-radius:14px; padding:1.25rem; font-size:.95rem; line-height:1.6; color:var(--cinza); margin-bottom:1.5rem; text-align:left; }
+  .btn-finalizar { padding:.9rem 2rem; background:var(--verde); color:white; border:none; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:1rem; font-weight:600; cursor:pointer; transition:all .2s; }
+  .btn-finalizar:hover { background:#1e4d38; }
+  .salvando-msg { font-size:.8rem; color:var(--cinza); margin-top:1rem; }
+
+  @media(max-width:600px){
+    .id-card{padding:2rem 1.5rem}
+    .prova-container{padding:1.5rem 1rem 6rem}
+    .questao-bloco{padding:1.5rem}
+    .resultado-detalhes{grid-template-columns:1fr}
+    .header-prova{flex-wrap:wrap;gap:.5rem}
+  }
+</style>
+</head>
+<body>
+
+<script>
+const SUPABASE_URL = 'COLE_AQUI_A_URL_DO_SUPABASE';
+const SUPABASE_ANON_KEY = 'COLE_AQUI_A_CHAVE_ANON';
+</script>
+
+<!-- TELA 1: IDENTIFICAÇÃO -->
+<div id="tela-identificacao">
+  <div class="id-card">
+    <div class="logo-marca">
+      <div class="logo-icone">💬</div>
+      <div class="logo-texto">Cresci e Perdi<span>Avaliação — GiraMod & SAC</span></div>
+    </div>
+    <h1>Prova de<br>GiraMod & SAC</h1>
+    <p>Esta avaliação cobre o sistema GiraMod (operações e onboarding) e os processos do SAC da Cresci e Perdi. Você terá <strong>120 minutos</strong> para concluir as 20 questões.</p>
+    <div class="campo-grupo">
+      <label>Seu nome completo</label>
+      <input type="text" id="input-nome" placeholder="Digite seu nome..." autocomplete="off">
+      <div class="erro-msg" id="erro-nome">Por favor, informe seu nome.</div>
+    </div>
+    <div class="campo-grupo">
+      <label>Equipe / Área de atuação</label>
+      <select id="input-equipe">
+        <option value="">Selecione sua equipe...</option>
+        <option>Concierge de Operação</option>
+        <option>Concierge de Implantação</option>
+        <option>Equipe de Anúncios / Contas</option>
+        <option>Equipe de Automação / Programação</option>
+        <option>Equipe Jurídica</option>
+        <option>Equipe de Mídias Sociais</option>
+        <option>Equipe da Agência / Criação 3D</option>
+        <option>Equipe DFCom</option>
+        <option>Equipe de Projetos</option>
+        <option>Equipe de Comunicação</option>
+        <option>Equipe do Financeiro</option>
+        <option>Equipe de Expansão</option>
+        <option>Recursos Humanos</option>
+        <option>Secretaria</option>
+        <option>Outra</option>
+      </select>
+      <div class="erro-msg" id="erro-equipe">Por favor, selecione sua equipe.</div>
+    </div>
+    <div class="aviso-tempo">⏱ <span>Após iniciar, o cronômetro não pode ser pausado. Conclua em até 120 minutos.</span></div>
+    <button class="btn-iniciar" onclick="iniciarProva()">Iniciar Avaliação →</button>
+  </div>
+</div>
+
+<!-- TELA 2: PROVA -->
+<div id="tela-prova">
+  <div class="header-prova">
+    <div class="header-info">
+      <div class="header-logo">💬 Cresci e Perdi</div>
+      <div class="header-candidato">Candidato: <strong id="header-nome">—</strong></div>
+    </div>
+    <div class="timer-bloco" id="timer-bloco">⏱ <span id="timer-display">120:00</span></div>
+  </div>
+  <div class="progresso-bar"><div class="progresso-fill" id="progresso-fill" style="width:0%"></div></div>
+  <div class="prova-container">
+    <div class="prova-status">
+      <div class="status-texto"><strong id="qtd-respondidas">0</strong> de 20 questões respondidas</div>
+      <div class="mini-mapa" id="mini-mapa"></div>
+    </div>
+    <div id="questoes-container"></div>
+  </div>
+  <div class="barra-envio">
+    <div class="resp-contador"><strong id="contador-barra">0</strong>/20 respondidas</div>
+    <button class="btn-enviar" id="btn-enviar" onclick="confirmarEnvio()" disabled>Enviar Prova ✓</button>
+  </div>
+</div>
+
+<!-- TELA 3: RESULTADO -->
+<div id="tela-resultado">
+  <div class="resultado-wrap">
+    <div class="resultado-card">
+      <div class="resultado-icone" id="res-icone">🎉</div>
+      <h2 id="res-titulo">Avaliação Concluída!</h2>
+      <p class="sub" id="res-subtitulo">Sua prova foi registrada com sucesso.</p>
+      <div class="nota-grande" id="res-nota">—</div>
+      <div class="status-pill" id="res-pill">—</div>
+      <div class="resultado-detalhes">
+        <div class="det-item"><div class="num" id="res-acertos">—</div><div class="lab">Acertos</div></div>
+        <div class="det-item"><div class="num" id="res-erros">—</div><div class="lab">Erros</div></div>
+        <div class="det-item"><div class="num" id="res-tempo">—</div><div class="lab">Tempo usado</div></div>
+      </div>
+      <div class="msg-resultado" id="res-msg">—</div>
+      <button class="btn-finalizar" onclick="window.close()">Fechar Avaliação</button>
+      <div class="salvando-msg" id="salvando-msg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================
+// GABARITO
+// =========================================================
+const GABARITO = {
+  q1:'b', q2:'c', q3:'a', q4:'d', q5:'b',
+  q6:'c', q7:'a', q8:'d', q9:'b', q10:'c',
+  q11:'a', q12:'d', q13:'b', q14:'c', q15:'a',
+  q16:'c', q17:'b', q18:'c', q19:'a', q20:'d'
+};
+
+// =========================================================
+// BANCO DE QUESTÕES
+// Distribuição:
+//   GiraMod — Perfis e Navegação: Q1, Q2
+//   GiraMod — Automático vs. Humano: Q3, Q4, Q5
+//   GiraMod — Hub de Atendimento (Conversas): Q6, Q7
+//   GiraMod — Central de Suporte (Tickets): Q8, Q9
+//   GiraMod — Gestão de Crises: Q10, Q11
+//   GiraMod — Rotinas e SLA: Q12, Q13
+//   SAC — Estrutura e Canais: Q14, Q15
+//   SAC — Triagem e Intermediação: Q16, Q17
+//   SAC — Grupo SAC Crítico e Escalada: Q18, Q19
+//   SAC — Conduta e Instagram Central: Q20
+// =========================================================
+const questoes = [
+  {
+    id:'q1', tema:'GiraMod — Perfis de Acesso',
+    texto:'Quais são os três perfis de acesso do GiraMod e qual é o nível de permissão de cada um?',
+    alternativas:{
+      a:'Analista, Supervisor e Diretor — cada um com acesso crescente às configurações do sistema',
+      b:'Operador (atende conversas e tickets), Supervisor/Franqueado (monitora e revisa decisões da IA) e Coordenador/Franqueador (acesso total, incluindo configurações)',
+      c:'Colaborador, Gerente e Admin — separados apenas por hierarquia funcional, sem diferença de funcionalidades no sistema',
+      d:'Atendente, Franqueado e Suporte Técnico — cada um acessa apenas o módulo da sua área de atuação'
+    }
+  },
+  {
+    id:'q2', tema:'GiraMod — Navegação',
+    texto:'Qual é o atalho de teclado mais útil do GiraMod e o que ele faz?',
+    alternativas:{
+      a:'Ctrl+S — salva todas as alterações pendentes no sistema',
+      b:'Ctrl+Enter — envia mensagem no chat sem precisar clicar no botão',
+      c:'Ctrl+K — abre a busca rápida, permitindo encontrar qualquer tela, conversa, ticket ou configuração',
+      d:'Ctrl+P — abre o painel de prioridades de tickets em andamento'
+    }
+  },
+  {
+    id:'q3', tema:'GiraMod — Automático vs. Humano',
+    texto:'Quais das seguintes ações são realizadas 100% de forma automática pela IA do GiraMod, sem precisar de intervenção humana?',
+    alternativas:{
+      a:'Moderação de comentários do Instagram/Facebook, resposta automática no WhatsApp, detecção de crise, criação de tickets e cálculo de SLA',
+      b:'Escalonamento de tickets, resolução de crises e aprovação de comentários marcados como "Revisar"',
+      c:'Transferência de conversas entre operadores, pausar a IA e atualizar a base de conhecimento',
+      d:'Resposta a e-mails, publicação de posts nas redes sociais e geração de relatórios mensais'
+    }
+  },
+  {
+    id:'q4', tema:'GiraMod — Automático vs. Humano',
+    texto:'O que acontece automaticamente quando um operador envia uma mensagem manual em uma conversa que a IA estava respondendo?',
+    alternativas:{
+      a:'A IA continua respondendo em paralelo para não deixar o cliente sem atenção',
+      b:'O sistema exige que o operador preencha um formulário de justificativa antes de enviar',
+      c:'A conversa é transferida automaticamente para o supervisor para validação',
+      d:'A IA é automaticamente pausada naquela conversa para evitar conflito entre os atendimentos'
+    }
+  },
+  {
+    id:'q5', tema:'GiraMod — Automático vs. Humano',
+    texto:'Quais ações dependem EXCLUSIVAMENTE do operador humano — ou seja, a IA nunca executa sozinha?',
+    alternativas:{
+      a:'Detectar sentimento das mensagens, gerar resumo do ticket e enviar alertas de SLA',
+      b:'Assumir conversa de crise, resolver ticket, escalonar para supervisor, aprovar/reprovar moderação e enviar mensagem como humano',
+      c:'Criar tickets automaticamente, calcular SLA e distribuir tickets por operador disponível',
+      d:'Pausar a IA de uma unidade, moderar comentários e enviar respostas no WhatsApp'
+    }
+  },
+  {
+    id:'q6', tema:'GiraMod — Hub de Atendimento',
+    texto:'No Hub de Atendimento do GiraMod, qual é o valor ideal para o KPI "Aguardando Resposta" e o que ele indica?',
+    alternativas:{
+      a:'O ideal é acima de 10, pois indica que há volume suficiente de clientes ativos para justificar a equipe',
+      b:'O ideal é entre 5 e 10, pois indica ritmo normal de atendimento sem sobrecarga',
+      c:'O ideal é o mais próximo de zero possível, pois indica conversas sem resposta do operador ou da IA que precisam de atenção',
+      d:'Não existe valor ideal — esse KPI varia conforme o tamanho da unidade e não precisa ser monitorado'
+    }
+  },
+  {
+    id:'q7', tema:'GiraMod — Hub de Atendimento',
+    texto:'Qual é o limite máximo recomendado de conversas simultâneas por operador e o que acontece se esse limite for ultrapassado?',
+    alternativas:{
+      a:'Máximo de 10 conversas — acima disso, o sistema bloqueia automaticamente novas mensagens para o operador',
+      b:'Máximo de 3 conversas — acima disso, as conversas são redirecionadas para a IA automaticamente',
+      c:'Não há limite estabelecido — o operador decide quantas conversas consegue gerenciar',
+      d:'Máximo de 5 conversas — acima disso, o tempo de resposta aumenta muito e a qualidade do atendimento cai significativamente'
+    }
+  },
+  {
+    id:'q8', tema:'GiraMod — Tickets',
+    texto:'Qual é a ordem correta das colunas Kanban na Central de Suporte, representando o ciclo de vida de um ticket?',
+    alternativas:{
+      a:'Aberto → Em Andamento → Escalado → Resolvido → Arquivado',
+      b:'Novo → Atribuído → Em Progresso → Revisão → Fechado',
+      c:'Criado → Pendente → Em Atendimento → Concluído',
+      d:'Novo → Aberto → Pendente → Escalado → Resolvido'
+    }
+  },
+  {
+    id:'q9', tema:'GiraMod — Tickets',
+    texto:'Qual é o prazo máximo de primeira resposta para um ticket de prioridade Urgente e o que acontece se esse prazo for excedido?',
+    alternativas:{
+      a:'Até 4 horas — o ticket é automaticamente escalado para o coordenador',
+      b:'Até 1 hora — o ticket fica destacado em vermelho com SLA expirado e o supervisor recebe alerta',
+      c:'Até 30 minutos — o ticket é encerrado automaticamente e o cliente é notificado',
+      d:'Até 8 horas — o sistema registra a quebra mas não toma nenhuma ação automática'
+    }
+  },
+  {
+    id:'q10', tema:'GiraMod — Gestão de Crises',
+    texto:'Quais são os quatro tipos de crise reconhecidos pelo GiraMod e quais possuem gravidade classificada como CRÍTICA?',
+    alternativas:{
+      a:'Crise Técnica, Crise Financeira, Crise de Reputação e Crise de Equipe — todas de gravidade ALTA',
+      b:'Risco Físico/Saúde Mental, Ameaça Legal, Violência/Assédio e Exposição Pública — todas CRÍTICAS',
+      c:'Risco Físico/Saúde Mental (CRÍTICA), Ameaça Legal (ALTA), Violência/Assédio (CRÍTICA) e Exposição Pública Negativa (ALTA)',
+      d:'Crise de Atendimento, Crise Jurídica, Crise Viral e Crise Interna — com gravidade definida caso a caso'
+    }
+  },
+  {
+    id:'q11', tema:'GiraMod — Gestão de Crises',
+    texto:'Qual é o protocolo correto de atendimento em crise no GiraMod, em 6 passos?',
+    alternativas:{
+      a:'PARE → LEIA → ACOLHA → INVESTIGUE → ACIONE ajuda → DOCUMENTE',
+      b:'LEIA → CLASSIFIQUE → RESPONDA → ESCALONE → DOCUMENTE → FECHE o ticket',
+      c:'INVESTIGUE → ACOLHA → PARE → NOTIFIQUE o supervisor → DOCUMENTE → RESOLVA',
+      d:'NOTIFIQUE → LEIA → ACOLHA → TRANSFIRA → ACOMPANHE → ENCERRE'
+    }
+  },
+  {
+    id:'q12', tema:'GiraMod — Rotinas e SLA',
+    texto:'Qual é a ordem de prioridade correta para atender demandas durante o turno no GiraMod?',
+    alternativas:{
+      a:'Tickets normais → Tickets urgentes → Crises → Conversas sem resposta → Tarefas de manutenção',
+      b:'Tickets com SLA expirando → Conversas sem resposta → Crises ativas → Tickets normais → Manutenção',
+      c:'Tarefas de manutenção → Crises → Tickets urgentes → Conversas pendentes → Tickets normais',
+      d:'Crises ativas → Tickets com SLA expirando → Tickets urgentes → Conversas sem resposta → Tickets normais → Tarefas de manutenção'
+    }
+  },
+  {
+    id:'q13', tema:'GiraMod — Rotinas e SLA',
+    texto:'Quais são as ações obrigatórias nos últimos 15 minutos do turno de um operador?',
+    alternativas:{
+      a:'Encerrar todos os tickets abertos, desativar a IA de todas as conversas e registrar métricas no Dashboard',
+      b:'Transferir conversas ativas, documentar pendências em tickets, atualizar status, registrar métricas e sinalizar problemas ao supervisor',
+      c:'Responder todas as mensagens pendentes, fechar todos os tickets do dia e enviar relatório por e-mail ao coordenador',
+      d:'Revisar decisões de moderação da IA, atualizar a base de conhecimento e configurar os agentes para o próximo turno'
+    }
+  },
+  {
+    id:'q14', tema:'SAC — Estrutura e Canais',
+    texto:'Quais são os canais de atendimento do SAC da Cresci e Perdi e qual é a finalidade de cada um?',
+    alternativas:{
+      a:'Apenas WhatsApp SAC e Reclame Aqui — o SAC não atua em redes sociais para evitar exposição pública',
+      b:'WhatsApp SAC, Instagram e E-mail — todos com a mesma finalidade de atender clientes e fornecedores',
+      c:'WhatsApp SAC (dúvidas e reclamações gerais), Canal Reclamações (reclamações formais), Reclame Aqui (plataforma pública), E-mail SAC, Instagram/Facebook (direto e comentário público) e SAC Automatizado por IA',
+      d:'Somente canais digitais automatizados — o SAC da Cresci e Perdi não possui atendimento humano, apenas chatbot'
+    }
+  },
+  {
+    id:'q15', tema:'SAC — Missão e Função',
+    texto:'Qual é a missão do SAC da Cresci e Perdi e de que forma ele funciona como intermediador?',
+    alternativas:{
+      a:'Garantir que nenhum cliente fique sem resposta, identificar e conter crises antes de se tornarem públicas, intermediar conflitos com neutralidade e preservar a imagem da marca — sem nunca repassar diretamente o contato do cliente para o franqueado',
+      b:'Resolver problemas diretamente entre cliente e franqueado, fornecendo o contato de cada parte para que se entendam sem intermediação',
+      c:'Atender apenas reclamações de consumidores no Reclame Aqui e responder comentários negativos nas redes sociais',
+      d:'Fiscalizar as unidades franqueadas e aplicar multas contratuais quando houver descumprimento de padrões de atendimento'
+    }
+  },
+  {
+    id:'q16', tema:'SAC — Triagem de Reclamações',
+    texto:'Durante a triagem de uma reclamação, o analista SAC deve coletar informações em etapas. Qual é a sequência correta?',
+    alternativas:{
+      a:'Abrir o ticket imediatamente e coletar os dados depois, enquanto o cliente aguarda a resolução',
+      b:'Encaminhar direto para o franqueado ao receber o primeiro contato, sem coleta prévia de informações',
+      c:'Reconhecer o relato de forma neutra → coletar dados básicos → coletar detalhamento do fato → coletar o impacto → reformular o relato para validação com o cliente',
+      d:'Coletar o impacto antes de entender o fato, pois o impacto é o que define a prioridade do ticket'
+    }
+  },
+  {
+    id:'q17', tema:'SAC — Intermediação',
+    texto:'Qual é o fluxo padrão de intermediação do SAC quando um cliente faz uma reclamação sobre uma loja?',
+    alternativas:{
+      a:'O SAC encaminha o contato do cliente diretamente para o WhatsApp do franqueado para que eles se entendam sem passar pelo SAC',
+      b:'O analista registra o caso, entra em contato com a unidade, colhe a versão da loja, valida se a resposta está dentro das diretrizes, devolve a resposta ao cliente de forma oficial e pressiona a loja por solução quando necessário',
+      c:'O analista resolve diretamente o problema do cliente sem consultar o franqueado, para agilizar o atendimento',
+      d:'O SAC registra a reclamação e aguarda o franqueado entrar em contato espontaneamente para resolver'
+    }
+  },
+  {
+    id:'q18', tema:'SAC — Grupo SAC Crítico',
+    texto:'Qual é a função do "Grupo WhatsApp SAC Crítico" e quais são as responsabilidades do analista em relação a ele?',
+    alternativas:{
+      a:'É um grupo de bate-papo informal da equipe para alinhar pautas internas — o analista não precisa monitorá-lo com frequência',
+      b:'É o canal de comunicação entre SAC e franqueados — o analista encaminha ali todas as reclamações recebidas',
+      c:'É o canal de alertas de crise e casos de risco, filtrados pela IA — o analista deve monitorá-lo continuamente, ler cada alerta, classificá-lo mentalmente, sinalizar obrigatoriamente no grupo e marcar casos em tratativa',
+      d:'É exclusivo para o coordenador e supervisor — o analista não tem acesso a esse grupo'
+    }
+  },
+  {
+    id:'q19', tema:'SAC — Escalada e Risco',
+    texto:'Em quais situações o analista SAC deve acionar o supervisor para escalada imediata?',
+    alternativas:{
+      a:'Quando há menção ao jurídico ou advogado, risco de exposição pública, erro operacional grave ou padrão recorrente de reclamações sobre a mesma unidade',
+      b:'Apenas quando o cliente ameaça ir ao Procon — demais casos devem ser resolvidos pelo analista sem escalada',
+      c:'Sempre que o cliente estiver insatisfeito, mesmo em dúvidas simples, para garantir que o supervisor valide todas as respostas',
+      d:'Somente quando o ticket ficar sem resposta por mais de 48 horas consecutivas'
+    }
+  },
+  {
+    id:'q20', tema:'SAC — Instagram Central',
+    texto:'O Instagram @crescieperdi é o canal institucional da franqueadora. Qual é a conduta correta ao receber uma reclamação sobre uma loja específica nesse canal?',
+    alternativas:{
+      a:'Ignorar a mensagem, pois o Instagram institucional não é responsável por atendimento de lojas individuais',
+      b:'Publicar a resposta nos comentários com o contato do franqueado para o cliente resolver diretamente',
+      c:'Transferir a conversa imediatamente para o grupo interno de WhatsApp do franqueado daquela unidade',
+      d:'Demonstrar empatia, informar que o Instagram Central não tem acesso direto ao sistema de cada loja e direcionar o cliente para o canal exclusivo de atendimento de reclamações: (11) 96175-1211'
+    }
+  }
+];
+
+// =========================================================
+// ESTADO
+// =========================================================
+let dadosColaborador = {};
+let respostas = {};
+let timerInterval = null;
+let tempoRestante = 120 * 60;
+let tempoUsado = 0;
+
+// =========================================================
+// INICIAR
+// =========================================================
+function iniciarProva() {
+  const nome = document.getElementById('input-nome').value.trim();
+  const equipe = document.getElementById('input-equipe').value;
+  let valido = true;
+  document.getElementById('erro-nome').style.display = 'none';
+  document.getElementById('erro-equipe').style.display = 'none';
+  if (!nome) { document.getElementById('erro-nome').style.display = 'block'; valido = false; }
+  if (!equipe) { document.getElementById('erro-equipe').style.display = 'block'; valido = false; }
+  if (!valido) return;
+  dadosColaborador = { nome, equipe, inicio: new Date().toISOString() };
+  document.getElementById('header-nome').textContent = nome;
+  document.getElementById('tela-identificacao').style.display = 'none';
+  document.getElementById('tela-prova').style.display = 'block';
+  renderizarQuestoes();
+  atualizarMiniMapa();
+  iniciarTimer();
+}
+
+// =========================================================
+// RENDERIZAR QUESTÕES
+// =========================================================
+function renderizarQuestoes() {
+  const container = document.getElementById('questoes-container');
+  container.innerHTML = '';
+  questoes.forEach((q, idx) => {
+    const bloco = document.createElement('div');
+    bloco.className = 'questao-bloco';
+    bloco.id = `bloco-${q.id}`;
+    bloco.innerHTML = `
+      <div class="questao-header">
+        <div class="numero-badge">${idx+1}</div>
+        <div>
+          <div class="tema-tag">${q.tema}</div>
+          <div class="questao-texto">${q.texto}</div>
+        </div>
+      </div>
+      <div class="alternativas">
+        ${['a','b','c','d'].map(l => `
+          <label class="alt-label" onclick="marcarResposta('${q.id}','${l}')">
+            <input type="radio" name="${q.id}" value="${l}" id="${q.id}-${l}">
+            <div class="alt-circulo"><span class="alt-letra">${l.toUpperCase()}</span></div>
+            <span class="alt-texto">${q.alternativas[l]}</span>
+          </label>`).join('')}
+      </div>`;
+    container.appendChild(bloco);
+  });
+}
+
+function marcarResposta(qId, letra) {
+  if (respostas[qId]) return;
+  respostas[qId] = letra;
+  document.getElementById(`${qId}-${letra}`).checked = true;
+
+  const bloco = document.getElementById(`bloco-${qId}`);
+  bloco.classList.add('respondida', 'bloqueada');
+
+  const gabarito = GABARITO[qId];
+  const acertou = letra === gabarito;
+
+  const labelEscolhida = document.querySelector(`label[onclick="marcarResposta('${qId}','${letra}')"]`);
+  if (acertou) {
+    labelEscolhida.classList.add('gabarito-certo');
+  } else {
+    labelEscolhida.classList.add('gabarito-errado');
+    const labelCerta = document.querySelector(`label[onclick="marcarResposta('${qId}','${gabarito}')"]`);
+    if (labelCerta) labelCerta.classList.add('gabarito-mostrar-certo');
+  }
+
+  const alternativasDiv = bloco.querySelector('.alternativas');
+  const tag = document.createElement('div');
+  tag.className = `feedback-tag ${acertou ? 'certo' : 'errado'}`;
+  tag.innerHTML = acertou
+    ? '✓ Resposta correta!'
+    : `✗ Resposta incorreta — a correta é a alternativa <strong>${GABARITO[qId].toUpperCase()}</strong>`;
+  alternativasDiv.after(tag);
+
+  atualizarContadores();
+  atualizarMiniMapa();
+}
+
+function atualizarContadores() {
+  const total = Object.keys(respostas).length;
+  document.getElementById('qtd-respondidas').textContent = total;
+  document.getElementById('contador-barra').textContent = total;
+  document.getElementById('progresso-fill').style.width = `${(total/20)*100}%`;
+  document.getElementById('btn-enviar').disabled = total < 20;
+}
+
+function atualizarMiniMapa() {
+  document.getElementById('mini-mapa').innerHTML = questoes.map((q,i) => {
+    let cls = '';
+    if (respostas[q.id]) {
+      cls = respostas[q.id] === GABARITO[q.id] ? 'respondida' : 'respondida errada';
+    }
+    return `<div class="mini-q ${cls}" title="Questão ${i+1}" onclick="document.getElementById('bloco-${q.id}').scrollIntoView({behavior:'smooth'})">${i+1}</div>`;
+  }).join('');
+}
+
+// =========================================================
+// TIMER
+// =========================================================
+function iniciarTimer() {
+  timerInterval = setInterval(() => {
+    tempoRestante--; tempoUsado++;
+    const m = Math.floor(tempoRestante/60), s = tempoRestante%60;
+    document.getElementById('timer-display').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if (tempoRestante <= 600) document.getElementById('timer-bloco').classList.add('urgente');
+    if (tempoRestante <= 0) { clearInterval(timerInterval); enviarProva(true); }
+  }, 1000);
+}
+
+function formatarTempo(s) { return `${Math.floor(s/60)}m ${String(s%60).padStart(2,'0')}s`; }
+
+// =========================================================
+// ENVIO
+// =========================================================
+function confirmarEnvio() {
+  const nao = 20 - Object.keys(respostas).length;
+  if (nao > 0) { alert(`Você ainda tem ${nao} questão(ões) sem resposta!`); return; }
+  if (confirm('Deseja realmente enviar a prova? Esta ação não pode ser desfeita.')) enviarProva(false);
+}
+
+function enviarProva(porTempo) {
+  clearInterval(timerInterval);
+  let acertos = 0;
+  questoes.forEach(q => { if (respostas[q.id] === GABARITO[q.id]) acertos++; });
+  const porcentagem = Math.round((acertos/20)*100);
+  const tempoReal = porTempo ? 120*60 : tempoUsado;
+  const resultado = {
+    nome: dadosColaborador.nome,
+    equipe: dadosColaborador.equipe,
+    prova: 'GiraMod & SAC',
+    inicio: dadosColaborador.inicio,
+    fim: new Date().toISOString(),
+    acertos, total: 20, porcentagem,
+    tempo_usado: formatarTempo(tempoReal),
+    respostas: JSON.stringify(respostas),
+    encerrado_por_tempo: porTempo
+  };
+  salvarSupabase(resultado);
+  salvarLocalStorage(resultado);
+  mostrarResultado(resultado);
+}
+
+// =========================================================
+// SALVAR NO SUPABASE
+// =========================================================
+async function salvarSupabase(resultado) {
+  const msg = document.getElementById('salvando-msg');
+  if (!SUPABASE_URL || SUPABASE_URL === 'COLE_AQUI_A_URL_DO_SUPABASE') {
+    msg.textContent = '⚠ Supabase não configurado — resultado salvo apenas localmente.';
+    return;
+  }
+  try {
+    msg.textContent = '⏳ Salvando resultado...';
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/prova_resultados`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(resultado)
+    });
+    if (res.ok) msg.textContent = '✅ Resultado salvo com sucesso.';
+    else { const err = await res.text(); msg.textContent = `⚠ Erro ao salvar: ${err}`; }
+  } catch(e) {
+    msg.textContent = `⚠ Erro de conexão: ${e.message}`;
+  }
+}
+
+// =========================================================
+// FALLBACK LOCAL
+// =========================================================
+function salvarLocalStorage(resultado) {
+  try {
+    const chave = 'cresci_prova_resultados';
+    const ex = JSON.parse(localStorage.getItem(chave) || '[]');
+    ex.push(resultado);
+    localStorage.setItem(chave, JSON.stringify(ex));
+  } catch(e) {}
+}
+
+// =========================================================
+// MOSTRAR RESULTADO
+// =========================================================
+function mostrarResultado(r) {
+  document.getElementById('tela-prova').style.display = 'none';
+  document.getElementById('tela-resultado').style.display = 'block';
+  document.getElementById('res-nota').textContent = `${r.porcentagem}%`;
+  document.getElementById('res-acertos').textContent = r.acertos;
+  document.getElementById('res-erros').textContent = 20 - r.acertos;
+  document.getElementById('res-tempo').textContent = r.tempo_usado;
+  let cls, icone, titulo, sub, pill, msg;
+  if (r.porcentagem >= 70) {
+    cls='aprovado'; icone='🎉'; titulo='Parabéns!'; sub='Você concluiu a avaliação com sucesso.'; pill='✓ Aprovado(a)';
+    msg=`Ótimo trabalho, ${r.nome}! Você demonstrou boa compreensão do sistema GiraMod e dos processos do SAC. Continue assim!`;
+  } else if (r.porcentagem >= 50) {
+    cls='medio'; icone='📋'; titulo='Avaliação Concluída'; sub='Sua prova foi registrada.'; pill='⚠ Resultado Regular';
+    msg=`${r.nome}, sua prova foi registrada. Recomendamos revisar os manuais do GiraMod e os materiais de treinamento do SAC antes de operar o sistema.`;
+  } else {
+    cls='reprovado'; icone='📚'; titulo='Revise o conteúdo'; sub='Sua prova foi registrada.'; pill='✗ Necessita Revisão';
+    msg=`${r.nome}, é necessário reler os manuais de operações e onboarding do GiraMod e o treinamento completo do SAC. Fale com sua liderança sobre os próximos passos.`;
+  }
+  document.getElementById('res-icone').textContent = icone;
+  document.getElementById('res-titulo').textContent = titulo;
+  document.getElementById('res-subtitulo').textContent = r.encerrado_por_tempo ? 'Tempo esgotado. Prova encerrada automaticamente.' : sub;
+  document.getElementById('res-nota').className = `nota-grande ${cls}`;
+  document.getElementById('res-pill').textContent = pill;
+  document.getElementById('res-pill').className = `status-pill ${cls}`;
+  document.getElementById('res-msg').textContent = msg;
+}
+</script>
+</body>
+</html>
